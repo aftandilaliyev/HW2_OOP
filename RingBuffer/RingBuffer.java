@@ -1,9 +1,5 @@
 package RingBuffer;
 
-/**
- * Core data store.
- * Manages raw slot storage and the global monotonic write counter.
- */
 public class RingBuffer {
 
     private final Object[] data;
