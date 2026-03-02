@@ -18,7 +18,8 @@ it clear that only one `Writer` instance should exist per buffer.
 ### `Reader`
 Each `Reader` instance holds its own `readPos` counter — completely independent of every other reader.
 On every `read()` call it checks whether the writer has lapped it (i.e. `writeCount - readPos > capacity`).
-If lapped, it silently recovers by jumping forward to the oldest still-available item.
+If lapped, it silently recovers by jumping forward to the oldest still-available item.<img width="505" height="517" alt="Screenshot 2026-03-02 at 22 07 24" src="https://github.com/user-attachments/assets/d22cf77a-56b6-40bc-9029-16e01da71658" />
+
 
 ## UML Class Diagram
 
