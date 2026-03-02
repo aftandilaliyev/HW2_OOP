@@ -18,104 +18,23 @@ it clear that only one `Writer` instance should exist per buffer.
 ### `Reader`
 Each `Reader` instance holds its own `readPos` counter — completely independent of every other reader.
 On every `read()` call it checks whether the writer has lapped it (i.e. `writeCount - readPos > capacity`).
-If lapped, it silently recovers by jumping forward to the oldest still-available item.<img width="505" height="517" alt="Screenshot 2026-03-02 at 22 07 24" src="https://github.com/user-attachments/assets/d22cf77a-56b6-40bc-9029-16e01da71658" />
+If lapped, it silently recovers by jumping forward to the oldest still-available item.
 
 
 ## UML Class Diagram
-
-┌──────────────────────────────────────┐
-│           RingBuffer                 │
-│──────────────────────────────────────│
-│ - data       : Object[]              │
-│ - capacity   : int                   │
-│ - writeCount : long                  │
-│──────────────────────────────────────│
-│ + getCapacity()  : int               │
-│ + getWriteCount(): long              │
-│ ~ write(Object)  : void              │  ← package-private
-│ ~ readAt(long)   : Object            │  ← package-private
-└──────────┬───────────────────────────┘
-           │ uses                    │ uses
-           │                         │
-┌──────────▼───────┐     ┌───────────▼──────────────┐
-│     Writer       │     │         Reader            │
-│──────────────────│     │──────────────────────────│
-│ - buffer         │     │ - buffer   : RingBuffer   │
-│──────────────────│     │ - readPos  : long         │
-│ + write(Object)  │     │──────────────────────────│
-│ + writeAll(      │     │ + hasNext()       : bool  │
-│    Object[])     │     │ + read()          : Object│
-└──────────────────┘     │ + readAvailable() : List  │
-                        │ - recover()       : void  │
-                         └──────────────────────────┘
-                            (N instances — each
-                             with its own readPos)
-
----
+<img width="505" height="517" alt="Screenshot 2026-03-02 at 22 07 24" src="https://github.com/user-attachments/assets/d22cf77a-56b6-40bc-9029-16e01da71658" />
 
 ## UML Sequence Diagram — write()
+<img width="543" height="239" alt="Screenshot 2026-03-02 at 22 08 41" src="https://github.com/user-attachments/assets/d85f60f2-3466-427d-8067-7bd1a537e541" />
 
-  Main              Writer           RingBuffer
-   │                  │                  │
-   │  write("A")      │                  │
-   │─────────────────►│                  │
-   │                  │  write("A")      │
-   │                  │─────────────────►│
-   │                  │                  │ index = writeCount % capacity
-   │                  │                  │ data[index] = "A"
-   │                  │                  │ writeCount++
-   │                  │◄─────────────────│
-   │◄─────────────────│                  │
-
----
 
 ## UML Sequence Diagram — read()
 
 ### Case A — Normal read (reader is keeping up)
-
-  Main              Reader           RingBuffer
-   │                  │                  │
-   │  read()          │                  │
-   │─────────────────►│                  │
-   │                  │  getWriteCount() │
-   │                  │─────────────────►│
-   │                  │◄─────────────────│ returns writeCount
-   │                  │                  │
-   │                  │ lag = writeCount - readPos
-   │                  │ lag > capacity? NO
-   │                  │                  │
-   │                  │  readAt(readPos) │
-   │                  │─────────────────►│
-   │                  │◄─────────────────│ returns data[readPos % capacity]
-   │                  │                  │
-   │                  │ readPos++        │
-   │◄─────────────────│                  │
-   │   returns item   │                  │
+<img width="577" height="343" alt="Screenshot 2026-03-02 at 22 09 01" src="https://github.com/user-attachments/assets/2301bd91-0b09-4c45-b1e7-64fc9f3f5f8b" />
 
 ### Case B — Slow reader (lapped by writer → auto recovery)
-
-  Main              Reader           RingBuffer
-   │                  │                  │
-   │  read()          │                  │
-   │─────────────────►│                  │
-   │                  │  getWriteCount() │
-   │                  │─────────────────►│
-   │                  │◄─────────────────│ returns writeCount
-   │                  │                  │
-   │                  │ lag = writeCount - readPos
-   │                  │ lag > capacity? YES → recover()
-   │                  │ readPos = writeCount - capacity
-   │                  │                  │
-   │                  │  readAt(readPos) │
-   │                  │─────────────────►│
-   │                  │◄─────────────────│ returns oldest available item
-   │                  │                  │
-   │                  │ readPos++        │
-   │◄─────────────────│                  │
-   │  returns item    │                  │
-   │  (B was missed)  │                  │
-
----
+<img width="589" height="383" alt="Screenshot 2026-03-02 at 22 09 17" src="https://github.com/user-attachments/assets/416696d8-b611-45a3-84d7-1203808f29a3" />
 
 ## How to Run / Test the Project
 
