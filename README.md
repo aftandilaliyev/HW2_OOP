@@ -1,0 +1,54 @@
+## Project Overview
+- A **single writer** that continuously writes data into a fixed-size buffer
+- **Multiple independent readers**, each tracking their own position
+- **Automatic overwrite** of oldest data when the buffer is full
+- **Silent recovery** for slow readers that fall behind — they automatically skip to the oldest available item
+
+A Ring Buffer is a fixed-size data structure that wraps around itself. When the buffer is full, new writes overwrite the oldest data. It is commonly used in data streaming, logging systems, and producer-consumer pipelines.
+
+## Design — Class Responsibilities
+### `RingBuffer`
+The core data store. Owns the physical array of slots and a global monotonic `writeCount` that **never resets**. The modulo operation (`writeCount % capacity`) maps any sequence number to a physical slot, making the buffer circular. Exposes package-private methods `write()` and `readAt()` so only `Writer` and `Reader` can access them directly.
+
+### `Writer`
+A **single-writer facade** that wraps `RingBuffer.write()`. Its existence enforces the single-writer
+contract at the class level — instead of relying on comments or conventions, the design itself makes
+it clear that only one `Writer` instance should exist per buffer.
+
+### `Reader`
+Each `Reader` instance holds its own `readPos` counter — completely independent of every other reader.
+On every `read()` call it checks whether the writer has lapped it (i.e. `writeCount - readPos > capacity`).
+If lapped, it silently recovers by jumping forward to the oldest still-available item.
+
+
+## UML Class Diagram
+<img width="505" height="517" alt="Screenshot 2026-03-02 at 22 07 24" src="https://github.com/user-attachments/assets/d22cf77a-56b6-40bc-9029-16e01da71658" />
+
+## UML Sequence Diagram — write()
+<img width="543" height="239" alt="Screenshot 2026-03-02 at 22 08 41" src="https://github.com/user-attachments/assets/d85f60f2-3466-427d-8067-7bd1a537e541" />
+
+
+## UML Sequence Diagram — read()
+
+### Case A — Normal read (reader is keeping up)
+<img width="577" height="343" alt="Screenshot 2026-03-02 at 22 09 01" src="https://github.com/user-attachments/assets/2301bd91-0b09-4c45-b1e7-64fc9f3f5f8b" />
+
+### Case B — Slow reader (lapped by writer → auto recovery)
+<img width="589" height="383" alt="Screenshot 2026-03-02 at 22 09 17" src="https://github.com/user-attachments/assets/416696d8-b611-45a3-84d7-1203808f29a3" />
+
+## How to Run / Test the Project
+
+### Project Structure
+
+RingBuffer/
+ 1 RingBuffer.java
+ 2  Writer.java
+ 3 Reader.java
+ 4 Main.java
+
+### Option 1 — Run from an IDE
+1. Create a new Java project
+2. Create a package named `RingBuffer`
+3. Add all four `.java` files into the package
+4. Run `Main.java`
+
